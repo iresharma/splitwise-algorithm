@@ -13,6 +13,12 @@ def user():
         user_id = request.args.get('user_id')
         return db_functions.get_user(user_id)
 
+@app.route('/group', methods=['GET', 'POST'])
+def group():
+    if request.method == 'GET':
+        group_id = request.args.get('group_id')
+        return db_functions.get_group(group_id)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

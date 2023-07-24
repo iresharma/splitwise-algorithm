@@ -36,7 +36,6 @@ class Group(StructuredNode):
         results, _ = self.cypher("Match (n:Transaction)-[r:TRANSACTION_PART_OF]->(m:Group {name: '" + self.name + "'}) RETURN n;")
         rows = [row[0] for row in results]
         transactions = []
-        # print(rows)
         for i in rows:
             res_lent, _ = self.cypher("Match (n:Transaction {tid: '" + i._properties['tid'] + "' })-[r:LENT]->(m:User) RETURN m;")
             rows_lent = [row[0] for row in res_lent]

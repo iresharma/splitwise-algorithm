@@ -1,4 +1,4 @@
-from . import User
+from . import User, Group
 
 def create_user(name: str):
     user = User(name=name)
@@ -15,4 +15,6 @@ def get_user(user_id: str):
     user = User.nodes.first(uid=user_id)
     return user.get_user()
 
-
+def get_group(group_id: str):
+    group = Group.nodes.first(gid=group_id)
+    return group.get_group()
