@@ -2,6 +2,7 @@ from neomodel import (config, StructuredNode, StringProperty, IntegerProperty,
                       DateTimeProperty, RelationshipTo, StructuredRel, ZeroOrOne)
 from os import environ
 from uuid import uuid4
+from json import dumps
 
 uri = environ.get('NEO4J_URI')
 username = environ.get('NEO4J_USERNAME')
@@ -22,10 +23,52 @@ class Group(StructuredNode):
     gid = StringProperty(default=lambda: uuid4().hex)
 
     def get_group(self):
-        results, columns = self.cypher("Match (n:Group {name: '" + self.name + "'})-[r]->(m) RETURN n, r, m;")
+        members = self.get_group_members()
+        transactions = self.get_group_transactions()
+        return {
+            'name': self.name,
+            'gid': self.gid,
+            'members': members,
+            'transactions': transactions
+        }
+
+    def get_group_transactions(self):
+        results, _ = self.cypher("Match (n:Transaction)-[r:TRANSACTION_PART_OF]->(m:Group {name: '" + self.name + "'}) RETURN n;")
         rows = [row[0] for row in results]
+        transactions = []
+        # print(rows)
         for i in rows:
-            print(i)
+            res_lent, _ = self.cypher("Match (n:Transaction {tid: '" + i._properties['tid'] + "' })-[r:LENT]->(m:User) RETURN m;")
+            rows_lent = [row[0] for row in res_lent]
+            temp = {
+                'tid': i._properties['tid'],
+                'amount': i._properties['amount'],
+                'createdAt': i._properties['created_at'],
+                'lent': {
+                    'name': rows_lent[0]._properties['name'],
+                    'uid':rows_lent[0]._properties['uid']
+                }
+            }
+            res_borrow, _ = self.cypher("Match (n:Transaction {tid: '" + i._properties['tid'] + "' })-[r:BORROWED]->(m:User) RETURN m;")
+            rows_borrow = [row[0] for row in res_borrow]
+            temp['borrow'] = {
+                'name': rows_borrow[0]._properties['name'],
+                'uid': rows_borrow[0]._properties['uid'],
+            }
+            transactions.append(temp)
+        return transactions
+
+    def get_group_members(self):
+        results, columns = self.cypher("Match (n)-[r:PART_OF]->(m:Group {name: '" + self.name + "'}) RETURN n;")
+        rows = [row[0] for row in results]
+        members = []
+        for i in rows:
+            temp = {
+                'name': i._properties['name'],
+                'uid': i._properties['uid']
+            }
+            members.append(temp)
+        return members
 
 
 class User(StructuredNode):
@@ -122,6 +165,8 @@ if __name__ == '__main__':
     # group1 = Group(name="Group1")
     # group1.save()
     # rel4 = iresh.groups.connect(group1)
+    # rel12 = nitty.groups.connect(group1)
+    # rel12.save()
     # rel.save()
     # rel2.save()
     # rel3.save()
@@ -137,4 +182,4 @@ if __name__ == '__main__':
     # print(iresh.get_user())
 
     group1 = Group.nodes.first(name="Group1")
-    group1.get_group()
+    print(dumps(group1.get_group(), indent=4))
